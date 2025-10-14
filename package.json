@@ -1,0 +1,12 @@
+{
+  "name": "youtube_clone",
+  "version": "1.0.0",
+  "description": "Youtube_Clone",
+  "license": "ISC",
+  "author": "Shubham Yadav",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
