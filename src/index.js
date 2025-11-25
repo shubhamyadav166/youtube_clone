@@ -2,8 +2,7 @@ import dotenv from 'dotenv'
 dotenv.config();
 import mongoose from "mongoose";
 import { DB_name } from "./constants.js";
-import express from "express";
-const app = express();
+import app from './app.js';
 
 import { DB_connection } from "./db/index.js";
 
