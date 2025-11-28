@@ -12,5 +12,13 @@ app.use(express.json({ limit: "16kb" }))
 app.use(express.urlencoded({ extended: true, limit: "16kb" }))
 app.use(express.static("public"))
 app.use(cookieParser())
+
+
+/////////// Register route
+import userRoute from './routes/user.routes.js'
+/// api should be api/v1/users
+app.use("/api/v1/users", userRoute)
+
+/// localhost://3000/api/v1/users
 export default app;
 
