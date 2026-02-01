@@ -9,10 +9,14 @@ router.route("/register").post(
             name: "avatar",
             maxCount: 1
         }, {
-            name: "coveImage",
+            name: "coverimage",
             maxCount: 1
         }
-    ])
+    ]),
+    (req, res, next) => {
+        // console.log(req.files);
+        next();
+    }
     , registerUser
 )
 
