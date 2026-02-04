@@ -4,6 +4,21 @@ import { ApiError } from '../utils/ApiError.js'
 import User from "../models/user.model.js"
 import uploadOnCloudinary from '../utils/cloudinary.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
+// make a method which generate refreshToken and AccessToken
+const generateAccessTokenAndRefreshToken = async (userId) => {
+    try {
+        const user = await User.findById(userId)
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
+
+        user.refreshToken = refreshToken
+        user.save({ validateBeforeSave: false })
+        return { accessToken, refreshToken }
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while generating refresh and accesstoken")
+    }
+}
+
 const registerUser = asyncHandler(async (req, res) => {
     // get user deatils from front end 
 
@@ -101,5 +116,53 @@ const registerUser = asyncHandler(async (req, res) => {
     )
 
 })
+const loginUser = asyncHandler(async (req, res) => {
+    // req.body=find data
+    // check user {email,username}
+    // check assword
+    // generate refesh token accesstoken
+    // send cookies
 
-export { registerUser }
+    const { email, username, password } = req.body;
+    ////
+    if (!username || !email) {
+        throw new ApiError(400, "One Username or Email is required")
+    }
+
+    ////  
+    const user = await User.findOne({
+        $or: [{ username }, { email }]
+    })
+    if (!user) {
+        throw new ApiError(404, "User does not exist")
+    }
+    //// password compare all method which is created by you available with user which you have find from databse
+    const isPasswordValid = await user.isPasswordCorrect(password)
+
+    if (!isPasswordValid) {
+        throw new ApiError(401, "Invalid User Credentials")
+    }
+
+    ///Generate refresh Token and access Token
+    const { refreshToken, accessToken } = await generateAccessTokenAndRefreshToken(user._id)
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res.status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(200,
+                {
+                    user: loggedInUser.refreshToken.accessToken
+                }, "User LoggedIn Succcessfully"
+            ),
+
+        )
+})
+
+export { registerUser, loginUser }
