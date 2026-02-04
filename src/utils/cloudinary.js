@@ -36,7 +36,7 @@ const uploadOnCloudinary = async (localFilePath) => {
 
     } catch (error) {
         if (fs.existsSync(localFilePath)) {
-            // fs.unlinkSync(localFilePath) // remove the localy saved file path for on the failed on upload method
+            fs.unlinkSync(localFilePath) // remove the localy saved file path for on the failed on upload method
             // remove the localy saved file path for on the failed on upload method
             console.log("somthing error in cloudinary funtion ", error)
 

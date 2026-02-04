@@ -1,4 +1,5 @@
 import { asyncHandler } from '../utils/AsyncHandler.js'
+import fs from 'fs'
 import { ApiError } from '../utils/ApiError.js'
 import User from "../models/user.model.js"
 import uploadOnCloudinary from '../utils/cloudinary.js'
@@ -7,32 +8,46 @@ const registerUser = asyncHandler(async (req, res) => {
     // get user deatils from front end 
 
     const { fullName, email, username, password } = req.body;
-    console.log("Email :", email);
+    // console.log(req.files.avatar?.[0].filename);
+
+    const avatarLocalPath = await req.files?.avatar?.[0]?.path
+    const coverImageLocalPath = await req.files?.coverimage?.[0]?.path
+    console.log(coverImageLocalPath);
+    console.log(avatarLocalPath);
+
     // Chceck validation that all field exist or not
     if ([fullName, email, username, password].some((field) => field?.trim() === "")) {
+        if (fs.existsSync(coverImageLocalPath) && fs.existsSync(avatarLocalPath))
+            fs.unlinkSync(coverImageLocalPath);
+        fs.unlinkSync(avatarLocalPath);
         throw new ApiError(400, "All fields are required")
     }
     // Check if user Already Exist userName,email
     const existedUser = await User.findOne({
         $or: [{ username }, { email }]
     })
-    console.log(existedUser);
-
 
     if (existedUser) {
+        // console.log(existedUser, username, email);
+        if (fs.existsSync(coverImageLocalPath) && fs.existsSync(avatarLocalPath))
+            fs.unlinkSync(coverImageLocalPath);
+        fs.unlinkSync(avatarLocalPath);
         throw new ApiError(409, "User of this username and password already exist")
     }
 
     // Check for image and check for avatar
-    const avatarLocalPath = req.files?.avatar?.[0]?.path
-    const coverImageLocalPath = req.files?.coverimage?.[0]?.path || ""
-    console.log(coverImageLocalPath);
-    console.log(avatarLocalPath);
+
+    // console.log(coverImageLocalPath);
+    // console.log(avatarLocalPath);
 
 
 
     if (!avatarLocalPath) {
-        throw new ApiError(400, "AvatarLocal path does not exist ")
+        if (fs.existsSync(coverImageLocalPath))
+            fs.unlinkSync(coverImageLocalPath)
+        // console.log(coverImageLocalPath);
+
+        throw new ApiError(400, "AvatarLocal path does not exist.......... ")
     } else {
         // console.log(avatarLocalPath);
 
@@ -41,21 +56,26 @@ const registerUser = asyncHandler(async (req, res) => {
     // upload them cloudinary Avatar
 
     const avatar = await uploadOnCloudinary(avatarLocalPath)
-    const coverimage = await uploadOnCloudinary(coverImageLocalPath)
-
-    console.log(avatar);
-    console.log(coverimage);
-
+    // console.log(avatar);
     /// to check that avatar successfully uploaded on cloudinary
     if (!avatar) {
         throw new ApiError(400, "Avatar is required ")
     }
-    // create user object create entry in db
+    let coverimage;
+    if (req.files.coverimage) {
+        coverimage = await uploadOnCloudinary(coverImageLocalPath)
+    } else {
 
+    }
+
+
+    console.log("cover image datat ---------------------------------------", coverimage);
+
+    // create user object create entry in db
     const user = await User.create({
         fullName,
         avatar: avatar.url,
-        coverimage: coverimage?.url || "",
+        coverimage: coverimage?.url,
         email,
         password,
         username: username.toLowerCase()
@@ -65,6 +85,11 @@ const registerUser = asyncHandler(async (req, res) => {
     const createdUser = await User.findById(user._id).select(
         "-password -refreshToken"
     )
+    if (createdUser) {
+        if (fs.existsSync(coverImageLocalPath) && fs.existsSync(avatarLocalPath))
+            fs.unlinkSync(coverImageLocalPath);
+        fs.unlinkSync(avatarLocalPath);
+    }
     // Check for user creation 
     if (!createdUser) {
         throw new ApiError(500, "something went wrong while registering user ")
