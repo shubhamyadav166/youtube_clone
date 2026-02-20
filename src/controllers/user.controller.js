@@ -125,12 +125,12 @@ const loginUser = asyncHandler(async (req, res) => {
     // send cookies
 
     const { email, username, password } = req.body;
-    ////
-    if (!username || !email) {
+    //// check validation before login that whether user have user name of email
+    if (!(username || email)) {
         throw new ApiError(400, "One Username or Email is required")
     }
 
-    ////  
+    ////  user find from Model because User have access of database
     const user = await User.findOne({
         $or: [{ username }, { email }]
     })
@@ -138,6 +138,8 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new ApiError(404, "User does not exist")
     }
     //// password compare all method which is created by you available with user which you have find from databse
+    // user user.ispassword method defined in user model 
+    //method can be access with user because Extracted this specific User stored into user
     const isPasswordValid = await user.isPasswordCorrect(password)
 
     if (!isPasswordValid) {
@@ -180,7 +182,11 @@ const logoutUser = asyncHandler(async (req, res) => {
     return res.status(200).
         clearCookie("accessToken", options).
         clearCookie("refreshToken", options).
-        json(new ApiResponse(200), {}, "User logged outSuccessfully")
+        json(new ApiResponse(200), {}, "User logged out Successfully")
+
+})
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
 
 })
 
