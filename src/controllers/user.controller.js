@@ -97,7 +97,7 @@ const registerUser = asyncHandler(async (req, res) => {
         username: username.toLowerCase()
 
     })
-    // remove remove Password and RefreshToken fied from response
+    //  remove Password and RefreshToken fied from response
     const createdUser = await User.findById(user._id).select(
         "-password -refreshToken"
     )
@@ -112,8 +112,9 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // return res
+    return res.cookie(access)
     return res.status(201).json(
-        new ApiResponse(200, createdUser, "User Successfully registerd")
+        new ApiResponse(200, createdUser, "User Successfully registerd").json()
     )
 
 })
@@ -124,7 +125,10 @@ const loginUser = asyncHandler(async (req, res) => {
     // generate refesh token accesstoken
     // send cookies
 
+
     const { email, username, password } = req.body;
+    console.log(email);
+
     //// check validation before login that whether user have user name of email
     if (!(username || email)) {
         throw new ApiError(400, "One Username or Email is required")
@@ -148,6 +152,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
     ///Generate refresh Token and access Token
     const { refreshToken, accessToken } = await generateAccessTokenAndRefreshToken(user._id)
+
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
     const options = {
@@ -161,7 +166,7 @@ const loginUser = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(200,
                 {
-                    user: loggedInUser.refreshToken.accessToken
+                    user: loggedInUser, accessToken, refreshToken
                 }, "User LoggedIn Succcessfully"
             ),
 
