@@ -3,6 +3,7 @@ import fs from 'fs'
 import { ApiError } from '../utils/ApiError.js'
 import User from "../models/user.model.js"
 import uploadOnCloudinary from '../utils/cloudinary.js'
+import { v2 as cloudinary } from 'cloudinary';
 import { ApiResponse } from '../utils/ApiResponse.js'
 import { set } from 'mongoose'
 import jwt from 'jsonwebtoken'
@@ -73,7 +74,7 @@ const registerUser = asyncHandler(async (req, res) => {
     // upload them cloudinary Avatar
 
     const avatar = await uploadOnCloudinary(avatarLocalPath)
-    // console.log(avatar);
+    console.log(avatar);
     /// to check that avatar successfully uploaded on cloudinary
     if (!avatar) {
         throw new ApiError(400, "Avatar is required ")
@@ -81,10 +82,7 @@ const registerUser = asyncHandler(async (req, res) => {
     let coverimage;
     if (req.files.coverimage) {
         coverimage = await uploadOnCloudinary(coverImageLocalPath)
-    } else {
-
     }
-
 
     console.log("cover image datat ---------------------------------------", coverimage);
 
@@ -92,7 +90,9 @@ const registerUser = asyncHandler(async (req, res) => {
     const user = await User.create({
         fullName,
         avatar: avatar.url,
+        avatarPublicId: avatar.public_id,
         coverimage: coverimage?.url,
+        coverimagePublicId: coverimage?.public_id,
         email,
         password,
         username: username.toLowerCase()
@@ -271,15 +271,24 @@ const avatarUserUpdate = asyncHandler(async (req, res) => {
     if (!avatar.url) {
         throw new ApiError(400, "Error Avatar uploading time on cloudinary ")
     }
+    //// find old public_id of avatar image
+    const oldUser = await User.findById(req.user?._id)
+    const oldUserAvatarPublicId = oldUser.avatarPublicId
 
-    const user = User.findByIdAndUpdate(req.user?._id,
+    const user = await User.findByIdAndUpdate(req.user?._id,
         {
             $set: {
-                avatar: avatar.url
+                avatar: avatar.url,
+                avatarPublicId: avatar.public_id,
             }
         },
         { timestamps: true }
     ).select("-password")
+
+    const result = cloudinary.uploader.destroy(oldUserAvatarPublicId)
+    if (!result.ok) {
+        throw new ApiError(401, "Old Avatar file not deleted from cloudinary")
+    }
     return res
         .status(200)
         .json(new ApiResponse(200, user, "Avatar image updated successfully"))
@@ -297,19 +306,43 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Error coverimage uploading time on cloudinary ")
     }
 
-    const user = User.findByIdAndUpdate(req.user?._id,
+    const userDetails = await User.findById(req.user?._id)
+    const oldCoverimagePublicId = userDetails.coverimagePublicId;
+
+    const user = await User.findByIdAndUpdate(req.user?._id,
         {
             $set: {
-                coverimage: coverimage.url
+                coverimage: coverimage.url,
+                coverimagePublicId: coverimage.public_id,
             }
         },
         { timestamps: true }
     ).select("-password")
+
+
+    ///// delete old image from cloudinary
+    const result = await cloudinary.uploader.destroy(oldCoverimagePublicId);
+    if (!result.ok) {
+        throw ApiError(401, "Old image not deleted from cloudinary")
+    }
+
     return res
         .status(200)
         .json(new ApiResponse(200, user, "Cover image updated successfully"))
 
 })
+
+///// Delete old avatar and cover image from cloudinary when user update new avatar and cover image
+
+// const deleteOldAvatarAndCoverImageFromCloudinary = asyncHandler(async (req, res) => {
+//     const user = await User.findById(req.user?._id)
+//     const avatarPublicId = user.avatarPublicId
+//     const coverImagePublicId = user?.coverimagePublicId
+
+//     const result =uploadOnCloudinary.
+
+
+// })
 
 export {
     registerUser,

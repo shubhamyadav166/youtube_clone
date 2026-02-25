@@ -30,10 +30,16 @@ const userSchema = new Schema({
         type: String, /// Cloudinary url
         required: true
     },
+    avatarPublicId: {
+        type: String
+    },
     coverimage: {
         type: String,
 
 
+    },
+    coverimagePublicId: {
+        type: String,
     },
     watchHistory:
         [
