@@ -332,17 +332,35 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
 })
 
-///// Delete old avatar and cover image from cloudinary when user update new avatar and cover image
+const getUserChannelProfile = asyncHandler((req, res) => {
+    const { username } = req.params()
 
-// const deleteOldAvatarAndCoverImageFromCloudinary = asyncHandler(async (req, res) => {
-//     const user = await User.findById(req.user?._id)
-//     const avatarPublicId = user.avatarPublicId
-//     const coverImagePublicId = user?.coverimagePublicId
+    if (!username?.trim()) {
+        throw new ApiError(400, "username is missing")
+    }
+    const channel = User.aggregate([{
+        $match: {
+            username: username?.toLowerCase()
+        }
+    },
+    {
+        $lookup: {
+            from: "subscriptions",
+            localField: "_id",
+            foreignField: "channel",
+            as: "subscribers"
+        }
+    },
+    {
+        $lookup: {
+            from: "subscriptions",
+            localField: "_id",
+            foreignField: "subscriber",
+            as: "subscribedTo"
+        }
+    }])
 
-//     const result =uploadOnCloudinary.
-
-
-// })
+})
 
 export {
     registerUser,
@@ -353,4 +371,5 @@ export {
     getCurrentUser,
     avatarUserUpdate,
     updateUserCoverImage,
+    getUserChannelProfile
 }
